@@ -26,8 +26,8 @@ router.get('/last', function(req, res, next) {
 
 router.get('/search/:query/:min_price/:max_price'/*+'&min_price=:min_price&max_price=:max_price'*/,function(req,res,next){
 
-    var url = "http://www.revolico.com"
-    path = "/vivienda/compra-venta/search.html?q=";
+    var url = "https://www.revolico.com"
+    path = "/vivienda/search.html?q=";
     path += req.params.query;
     path += "&min_price=";
     path += req.params.min_price;
@@ -42,8 +42,49 @@ router.get('/search/:query/:min_price/:max_price'/*+'&min_price=:min_price&max_p
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
             var root = HTMLParser.parse(body);
-            console.log(root.firstChild.firstChild.text);
-            return res.send(JSON.stringify(root.firstChild.firstChild.text));
+            //console.log(root.structure);
+
+            var listDark = root.querySelectorAll('td.dark');
+            var listLight = root.querySelectorAll('td.light');
+            //list+=root.querySelectorAll('td.light');
+            
+            var finalData = [];
+
+            for (let index = 1; index < listDark.length; index++) {
+                const element = listDark[index];
+                //console.log(element.structure)
+                try {
+                    var data = {
+                        link : url + element.querySelectorAll('a')[0].attributes.href,
+                        date : element.querySelectorAll('a')[0].attributes.title,
+                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
+                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n','')
+                    };
+                    finalData.push(data);    
+                } catch (error) {
+                    continue;                    
+                }
+            }
+
+            for (let index = 0; index < listLight.length; index++) {
+                const element = listLight[index];
+                //console.log(element.structure)
+                try {
+                    var data = {
+                        link : url + element.querySelectorAll('a')[0].attributes.href,
+                        date : element.querySelectorAll('a')[0].attributes.title,
+                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
+                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n','')
+                    };
+                    finalData.push(data);    
+                } catch (error) {
+                    console.log(error.message);
+                    continue;                    
+                }
+            }
+
+            //return res.send(JSON.stringify(finalData));
+            return res.send(finalData);
         }else{
             console.log(error.message);
             return res.send(JSON.stringify(error));
