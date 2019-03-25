@@ -15,11 +15,11 @@ client.registerMethod("search", "http://localhost:3001/posts?q=${codeValue}", "G
 
 
 const TelegramBot = require('node-telegram-bot-api');
-const token = '813296213:AAFXM1cjeNQc3GHcMA7XmdujEOKlTEa_Xk4';
+const token = '813296213:AAFn0kDzvlsCqfC48S_h9zo9UYgihC7OICI';
 const bot = new TelegramBot(token, {polling: true});
 
 
-function parseResponse(body)
+function parseResponse(body,url)
 {
     var root = HTMLParser.parse(body);
     //console.log(root.structure);
@@ -39,7 +39,7 @@ function parseResponse(body)
                 date : element.querySelectorAll('a')[0].attributes.title,
                 title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
                 text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
-                photos : element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n','')
+                photos : !!element.querySelectorAll('span.formExtraDescB')[0]?element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n',''):'sin fotos'
             };
             finalData.push(data);    
         } catch (error) {
@@ -75,7 +75,7 @@ function parseResponse(body)
 let texto;
 
 bot.on('message', (msg) => {
-    texto = match[1];
+    texto = msg.text;
     bot.sendMessage(msg.chat.id,'OK, precio máximo?', {
       reply_markup: {
         inline_keyboard: [[
@@ -104,10 +104,8 @@ bot.on('message', (msg) => {
 
 bot.on("callback_query", (callbackQuery) => {
     const message = callbackQuery.message;
-    
-    var q = callbackQuery.data.split(',');
 
-    console.log(q);
+    var q = callbackQuery.data.split(',');
         
     var url = "https://www.revolico.com"
     path = "/vivienda/search.html?q=";
@@ -117,26 +115,27 @@ bot.on("callback_query", (callbackQuery) => {
     path += "&max_price=";
     path += q[2];
     path += "&order=date";
-
-    console.log(url+path);
+    console.log(callbackQuery.from.username+": "+url+path);
     
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
             
-            var finalData = parseResponse(body);
+            var finalData = parseResponse(body,url);
 
-            var response = "";
+            //var response = "";
 
             finalData.forEach(element => {
+                var response = "";
                 response+=element.title+'\n'
                 response+=element.text+'\n'
                 response+=element.photos+'\n'
+                response+=element.date+'\n'
                 response+=element.link+'\n\n'
+                bot.sendMessage(message.chat.id, response);    
             });
-
-            response = response.substring(0, 4090);
-
-            bot.sendMessage(message.chat.id, response);
+            //response = response.substring(0, 4090);
+            //bot.sendMessage(message.chat.id, response);  
+             
         }else{
             console.log(message);
             console.log(error.message);
@@ -181,7 +180,7 @@ router.get('/search/:query/:min_price/:max_price',function(req,res,next){
 
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
-            var finalData = parseResponse(body);
+            var finalData = parseResponse(body,url);
             return res.send(finalData);
         }else{
             console.log(error.message);
