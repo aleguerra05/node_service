@@ -13,10 +13,60 @@ var request = require('request');
 
 client.registerMethod("search", "http://localhost:3001/posts?q=${codeValue}", "GET");
 
-///---------------botcode
+
 const TelegramBot = require('node-telegram-bot-api');
 const token = '813296213:AAFXM1cjeNQc3GHcMA7XmdujEOKlTEa_Xk4';
 const bot = new TelegramBot(token, {polling: true});
+
+
+function parseResponse(body)
+{
+    var root = HTMLParser.parse(body);
+    //console.log(root.structure);
+
+    var listDark = root.querySelectorAll('td.dark');
+    var listLight = root.querySelectorAll('td.light');
+    //list+=root.querySelectorAll('td.light');
+    
+    var finalData = [];
+
+    for (let index = 1; index < listDark.length; index++) {
+        const element = listDark[index];
+        //console.log(element.structure)
+        try {
+            var data = {
+                link : url + element.querySelectorAll('a')[0].attributes.href,
+                date : element.querySelectorAll('a')[0].attributes.title,
+                title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
+                text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
+                photos : element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n','')
+            };
+            finalData.push(data);    
+        } catch (error) {
+            console.log(error.message);
+            continue;                    
+        }
+    }
+
+    for (let index = 0; index < listLight.length; index++) {
+        const element = listLight[index];
+        //console.log(element.structure)
+        try {
+            var data = {
+                link : url + element.querySelectorAll('a')[0].attributes.href,
+                date : element.querySelectorAll('a')[0].attributes.title,
+                title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
+                text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
+                photos : !!element.querySelectorAll('span.formExtraDescB')[0]?element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n',''):'sin fotos'
+            };
+            finalData.push(data);    
+        } catch (error) {
+            console.log(error.message);
+            continue;                    
+        }
+    }
+    return finalData;
+}
 
 //bot.on('message', (msg) => {
 //    bot.sendMessage(msg.chat.id, 'You say: ' + msg.text);
@@ -24,7 +74,7 @@ const bot = new TelegramBot(token, {polling: true});
 
 let texto;
 
-bot.onText(/\/buscar (.+)/, (msg, match) => {
+bot.on('message', (msg) => {
     texto = match[1];
     bot.sendMessage(msg.chat.id,'OK, precio máximo?', {
       reply_markup: {
@@ -72,53 +122,9 @@ bot.on("callback_query", (callbackQuery) => {
     
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
-            var root = HTMLParser.parse(body);
-            //console.log(root.structure);
-
-            var listDark = root.querySelectorAll('td.dark');
-            var listLight = root.querySelectorAll('td.light');
-            //list+=root.querySelectorAll('td.light');
             
-            var finalData = [];
+            var finalData = parseResponse(body);
 
-            for (let index = 1; index < listDark.length; index++) {
-                const element = listDark[index];
-                //console.log(element.structure)
-                try {
-                    var data = {
-                        link : url + element.querySelectorAll('a')[0].attributes.href,
-                        date : element.querySelectorAll('a')[0].attributes.title,
-                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
-                        photos : element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n','')
-                    };
-                    finalData.push(data);    
-                } catch (error) {
-                    continue;                    
-                }
-            }
-
-            for (let index = 0; index < listLight.length; index++) {
-                const element = listLight[index];
-                //console.log(element.structure)
-                try {
-                    var data = {
-                        link : url + element.querySelectorAll('a')[0].attributes.href,
-                        date : element.querySelectorAll('a')[0].attributes.title,
-                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
-                        photos : !!element.querySelectorAll('span.formExtraDescB')[0]?element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n',''):'sin fotos'
-                    };
-                    finalData.push(data);    
-                } catch (error) {
-                    console.log(error.message);
-                    continue;                    
-                }
-            }
-
-            //return res.send(JSON.stringify(finalData));
-            console.log(message);
-            
             var response = "";
 
             finalData.forEach(element => {
@@ -142,6 +148,8 @@ bot.on("callback_query", (callbackQuery) => {
 });
 
 ///---------------botcode
+
+
 
 
 
@@ -173,49 +181,7 @@ router.get('/search/:query/:min_price/:max_price',function(req,res,next){
 
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
-            var root = HTMLParser.parse(body);
-            //console.log(root.structure);
-
-            var listDark = root.querySelectorAll('td.dark');
-            var listLight = root.querySelectorAll('td.light');
-            //list+=root.querySelectorAll('td.light');
-            
-            var finalData = [];
-
-            for (let index = 1; index < listDark.length; index++) {
-                const element = listDark[index];
-                //console.log(element.structure)
-                try {
-                    var data = {
-                        link : url + element.querySelectorAll('a')[0].attributes.href,
-                        date : element.querySelectorAll('a')[0].attributes.title,
-                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n','')
-                    };
-                    finalData.push(data);    
-                } catch (error) {
-                    continue;                    
-                }
-            }
-
-            for (let index = 0; index < listLight.length; index++) {
-                const element = listLight[index];
-                //console.log(element.structure)
-                try {
-                    var data = {
-                        link : url + element.querySelectorAll('a')[0].attributes.href,
-                        date : element.querySelectorAll('a')[0].attributes.title,
-                        title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                        text : element.querySelectorAll('span.textGray')[0].text.replace('\n','')
-                    };
-                    finalData.push(data);    
-                } catch (error) {
-                    console.log(error.message);
-                    continue;                    
-                }
-            }
-
-            //return res.send(JSON.stringify(finalData));
+            var finalData = parseResponse(body);
             return res.send(finalData);
         }else{
             console.log(error.message);
