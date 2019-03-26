@@ -1,72 +1,31 @@
 var express = require('express');
 var router = express.Router();
+var utils = require('../utils/utils')
 
 //var fs = require('fs');
 
 var Client = require('node-rest-client').Client;
 var client = new Client();
 
-//https://www.npmjs.com/package/node-html-parser
-var HTMLParser = require('node-html-parser');
 var request = require('request');
 
 
 client.registerMethod("search", "http://localhost:3001/posts?q=${codeValue}", "GET");
 
 
-const TelegramBot = require('node-telegram-bot-api');
-const token = '813296213:AAFn0kDzvlsCqfC48S_h9zo9UYgihC7OICI';
-const bot = new TelegramBot(token, {polling: true});
+//const TelegramBot = require('node-telegram-bot-api');
+const token = '813296213:AAHMSH-wVo9od3FsU74sO0I5qnK93BF61SM';
+//const bot = new TelegramBot(token, {polling: true});
 
-
-function parseResponse(body,url)
-{
-    var root = HTMLParser.parse(body);
-    //console.log(root.structure);
-
-    var listDark = root.querySelectorAll('td.dark');
-    var listLight = root.querySelectorAll('td.light');
-    //list+=root.querySelectorAll('td.light');
-    
-    var finalData = [];
-
-    for (let index = 1; index < listDark.length; index++) {
-        const element = listDark[index];
-        //console.log(element.structure)
-        try {
-            var data = {
-                link : url + element.querySelectorAll('a')[0].attributes.href,
-                date : element.querySelectorAll('a')[0].attributes.title,
-                title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
-                photos : !!element.querySelectorAll('span.formExtraDescB')[0]?element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n',''):'sin fotos'
-            };
-            finalData.push(data);    
-        } catch (error) {
-            console.log(error.message);
-            continue;                    
-        }
-    }
-
-    for (let index = 0; index < listLight.length; index++) {
-        const element = listLight[index];
-        //console.log(element.structure)
-        try {
-            var data = {
-                link : url + element.querySelectorAll('a')[0].attributes.href,
-                date : element.querySelectorAll('a')[0].attributes.title,
-                title : title = element.querySelectorAll('a')[0].text.replace('\n','').replace('\n','').trim(),
-                text : element.querySelectorAll('span.textGray')[0].text.replace('\n',''),
-                photos : !!element.querySelectorAll('span.formExtraDescB')[0]?element.querySelectorAll('span.formExtraDescB')[0].text.replace('\n',''):'sin fotos'
-            };
-            finalData.push(data);    
-        } catch (error) {
-            console.log(error.message);
-            continue;                    
-        }
-    }
-    return finalData;
-}
+const Tgfancy = require("tgfancy");
+const bot = new Tgfancy(token, {
+    // all options to 'tgfancy' MUST be placed under the
+    // 'tgfancy' key, as shown below
+    polling: true,
+    tgfancy: {
+        orderedSending : true,  // 'true' to enable!
+    },
+});
 
 //bot.on('message', (msg) => {
 //    bot.sendMessage(msg.chat.id, 'You say: ' + msg.text);
@@ -80,22 +39,23 @@ bot.on('message', (msg) => {
       reply_markup: {
         inline_keyboard: [[
           {
-            text: '5 mil',
-            callback_data: texto+',0,5000'
+            text: '0-5 mil',
+            callback_data: texto+',0,5000,0,10'
           },{
-            text: '10 mil',
-            callback_data: texto+',5000,10000'
-          }
-          ,{
-            text: '15 mil',
-            callback_data: texto+',10000,15000'
+            text: '5-10 mil',
+            callback_data: texto+',5000,10000,0,10'
           },{
-            text: '20 mil',
-            callback_data: texto+',15000,20000'
-          }
-          ,{
-            text: '30 mil',
-            callback_data: texto+',20000,30000'
+            text: '10-15 mil',
+            callback_data: texto+',10000,15000,0,10'
+          },{
+            text: '15-20 mil',
+            callback_data: texto+',15000,20000,0,10'
+          },{
+            text: '20-30 mil',
+            callback_data: texto+',20000,30000,0,10'
+          },{
+            text: '30-50 mil',
+            callback_data: texto+',30000,50000,0,10'
           }
         ]]
       }
@@ -117,41 +77,66 @@ bot.on("callback_query", (callbackQuery) => {
     path += "&order=date";
     console.log(callbackQuery.from.username+": "+url+path);
     
-    request({ uri: url+path }, function(error, response, body) {
+    request({ uri: url+path }, async function(error, response, body) {
         if(!error){ 
-            
-            var finalData = parseResponse(body,url);
+            var finalData = await utils.parseResponse(body,url);
 
-            //var response = "";
+            bot.sendMessage(message.chat.id, "Encontrados: "+finalData.length+" articulos.");    
 
-            finalData.forEach(element => {
+            var count = q[3];
+            if (finalData.length<q[4])
+                q[4]=finalData.length
+
+            for (let index = q[3]; index < q[4]; index++) {
+                const element = finalData[index];
+                
                 var response = "";
                 response+=element.title+'\n'
                 response+=element.text+'\n'
                 response+=element.photos+'\n'
                 response+=element.date+'\n'
                 response+=element.link+'\n\n'
-                bot.sendMessage(message.chat.id, response);    
-            });
-            //response = response.substring(0, 4090);
-            //bot.sendMessage(message.chat.id, response);  
-             
+                try{
+                    if(index!=q[4]-1){
+                        bot.sendMessage(message.chat.id, response);
+                        element.photoLinks.forEach(element => {
+                            bot.sendMessage(message.chat.id, element);
+                        });
+                        }
+                    else{
+                        bot.sendMessage(message.chat.id, response)
+                        element.photoLinks.forEach(element => {
+                            bot.sendMessage(message.chat.id, element);
+                        });
+                            
+                        var top =  parseInt(q[4]) +10;
+                        if (top>finalData.length) 
+                            top = finalData.length;
+                        if(q[4]<finalData.length)
+                            bot.sendMessage(message.chat.id,'Mostrando articulos del '+q[3]+'-'+q[4], {
+                                reply_markup: {
+                                inline_keyboard: [[
+                                    {
+                                    text: 'Siguiente página: '+q[4]+'-'+top,
+                                    callback_data: q[0]+','+q[1]+','+q[2]+','+q[4]+','+top
+                                    }
+                                ]]
+                                }
+                            });
+                    }
+                } catch(error){
+                    console.log(error.message)
+                }
+            }
+            
         }else{
-            console.log(message);
             console.log(error.message);
             bot.sendMessage(message.chat.id, error.message);
         }
     });
-
-    
 });
 
 ///---------------botcode
-
-
-
-
-
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -180,7 +165,7 @@ router.get('/search/:query/:min_price/:max_price',function(req,res,next){
 
     request({ uri: url+path }, function(error, response, body) {
         if(!error){ 
-            var finalData = parseResponse(body,url);
+            var finalData = utils.parseResponse(body,url);
             return res.send(finalData);
         }else{
             console.log(error.message);
